@@ -2,11 +2,11 @@ import S from 'sanctuary'
 
 const API = {
 	config: {
-		dbHost: S.Nothing,
-		dbPort: S.Nothing,
-		dbName: S.Nothing,
-		dbUser: S.Nothing,
-		dbPassword: S.Nothing,
+		dbHost: S.Left (''),
+		dbPort: S.Left (''),
+		dbName: S.Left (''),
+		dbUser: S.Left (''),
+		dbPassword: S.Left (''),
 	},
 
 	hello (options) {

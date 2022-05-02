@@ -1,54 +1,63 @@
 'use strict'
 
-import S                           from 'sanctuary'
-import { Flag, Option, parseArgs } from 'sanctuary-argv'
-import API                         from './index.js'
+import S                     from 'sanctuary'
+import { Option, parseArgs } from 'sanctuary-argv'
+import API                   from './index.js'
 
 // Option        :: Validator a -⁠> Handler a
 // Validator     :: String -> Either String (Setter a)
 // Handler       :: Either (Setter a) (Validator a)
-// Configuration :: StrMap
+// Configuration :: StrMap (Either String String)
 
-/**   Required :: (Maybe String -> Maybe String) -> a -> Handler a */
-const Required = (setter => value =>
-  value == null
-  ? S.Left (`${S.show (value)} is required`)
-  : S.Right (setter (S.K (S.Just (value))))
+/**   Any :: (a -> b) -> String -> StrMap b -> Right (StrMap b) */
+const Any = of => key => (
+	S.pipe ([
+		of,
+		S.insert (key),
+		S.Right,
+	])
 )
 
-/**   update :: String -> (Maybe String -> Maybe String) -> Options -> Configuration */
-const update = key => f => options => ({...options, [key]: f (null)})
+// const Any = of => key => value => (
+// 	S.Right (S.insert (key) (of (value)))
+// )
+
+// const Any = f => key => value => S.Right (options => ({
+// 	...options,
+// 	[key]: f (value)
+// }))
 
 /**   dbHost :: Handler Configuration */
-const dbHost = Option (Required (update ('dbHost')))
+const dbHost = Option (Any (S.Right) ('dbHost'))
 
 /**   dbPort :: Handler Configuration */
-const dbPort = Option (Required (update ('dbPort')))
+const dbPort = Option (Any (S.Right) ('dbPort'))
 
 /**   dbName :: Handler Configuration */
-const dbName = Option (Required (update ('dbName')))
+const dbName = Option (Any (S.Right) ('dbName'))
 
 /**   dbUser :: Handler Configuration */
-const dbUser = Option (Required (update ('dbUser')))
+const dbUser = Option (Any (S.Right) ('dbUser'))
 
 /**   dbPassword :: Handler Configuration */
-const dbPassword = Option (Required (update ('dbPassword')))
+const dbPassword = Option (Any (S.Right) ('dbPassword'))
 
-/**   spec :: StrMap (Handler Configuration) */
+
+//    spec :: StrMap (Handler Configuration)
 const spec = {
-  '-h':	dbHost,     '--host':	dbHost,
-  '-p':	dbPort,     '--port':	dbPort,
-  '-n':	dbName,     '--name':	dbName,
-  '-u':	dbUser,     '--user':	dbUser,
-  '-w':	dbPassword, '--password':	dbPassword,
+	'-h':	dbHost,      	'--host':	dbHost,
+	'-p':	dbPort,       '--port':	dbPort,
+	'-n': dbName,       '--name': dbName,
+	'-u': dbUser,       '--user': dbUser,
+	'-w': dbPassword,   '--password': dbPassword,
 }
 
 /**   parse :: Array String -> Either String (Pair Options (Array String)) */
 const parse = S.pipe ([
-  S.Pair (API.config),
-  parseArgs (spec)
+	S.Pair (API.config),
+	parseArgs (spec)
 ])
 
 console.debug (
-  parse (process.argv.slice (2))
+	parse (process.argv.slice (2))
 )
