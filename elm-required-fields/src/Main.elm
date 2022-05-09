@@ -38,8 +38,27 @@ init : Config
 init = Dict.fromList
         [ ("user", RequiredField "password" "")
         , ("password", RequiredField "user" "")
-        , ("arbitrary", Any "foo")
+        , ("arbitrary", Any "")
         ]
+
+
+validate_ : Config -> Result String Bool
+validate_ config =
+    let validateField_ = validateField config
+    in
+        Dict.foldl (\key field output ->
+                        case output of
+                            Result.Ok  _ ->
+                                if validateField_ field then
+                                    Result.Ok True
+                                else
+                                    Result.Err ("“" ++ key ++ "” requires that “" ++ requiredFieldToString field ++ "” has a value.")
+
+                            Result.Err _ -> output
+                   )
+                   (Result.Ok True)
+                   (config)
+
 
 
 validate : Config -> Bool
@@ -97,23 +116,35 @@ updateField value field =
 -- VIEW
 
 
+
+resultToString : Result String Bool -> String
+resultToString result =
+    case result of
+        Result.Ok  a -> "The configuration is " ++ boolToString a ++ " valid."
+        Result.Err a -> a
+
+
+
 boolToString : Bool -> String
 boolToString value =
-    if value then
-        ""
-
-    else
-        "not"
+    if value then ""
+    else "not"
 
 
-fieldToString : Field -> String
-fieldToString field =
+fieldToValue : Field -> String
+fieldToValue field =
     case field of
         Any value ->
             value
 
         RequiredField _ value ->
             value
+
+requiredFieldToString : Field -> String
+requiredFieldToString requiredField =
+    case requiredField of
+     RequiredField fieldName _ -> fieldName
+     Any _ -> ""
 
 
 configToHtmlList : Config -> Html msg
@@ -124,7 +155,7 @@ configToHtmlList config =
         (\key field output ->
             li
             []
-            [ text ("Key: " ++ key ++ " Value: " ++ fieldToString field) ] :: output)
+            [ text ("Key: " ++ key ++ " Value: " ++ fieldToValue field) ] :: output)
         []
         config)
 
@@ -137,6 +168,7 @@ view config =
             ++
             [
                 p [] [ text ("The configuration is " ++ (boolToString (validate config)) ++ " valid.") ]
+            ,   p [] [ text (resultToString (validate_ config)) ]
             ,   configToHtmlList config
             ]
         )
@@ -154,7 +186,7 @@ viewInputField : String -> Field -> Html Msg
 viewInputField key field =
     input
         [ placeholder key
-        , value (fieldToString field)
+        , value (fieldToValue field)
         , onInput (UpdateField key)
         ]
         []
