@@ -11,7 +11,6 @@ module Main exposing (..)
 
 import Browser
 import Dict exposing (Dict)
-import List
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput)
@@ -53,8 +52,7 @@ validate config = {- key is only needed if we need to communicate what was inval
 validateField : Config -> Field -> Bool
 validateField config field =
     case field of
-        Any _ ->
-            True
+        Any _ -> True
 
         RequiredField fieldName _ ->
             config
@@ -62,44 +60,37 @@ validateField config field =
                 |> Maybe.map isFieldValid
                 |> Maybe.withDefault False
 
-            -- config
-            --     |> Dict.toList
-            --     -- List ( String, Field )
-
-            --     |> List.filter (\(_, value) ->
-            --         case value of
-            --             RequiredField _ _ -> True
-            --             Any _ -> False)
-            --     -- List ( String, RequiredField )
-
-            --     |> List.all (\(key, value) ->
-            --         key == fieldName && value /= RequiredField fieldName "")
-            --     -- Bool
 
 isFieldValid : Field -> Bool
 isFieldValid field =
     case field of
         RequiredField _ value -> value /= ""
-        Any _ -> False
+        Any _ -> True {- impossible path -}
+
 
 
 -- UPDATE
 
 
 type Msg
-    = UpdateUser String
-    | UpdatePassword String
+    = UpdateField String String
 
 
 update : Msg -> Config -> Config
-update _ config =
-    config
-    -- case msg of
-    --     UpdateUser name ->
-    --         { model | user = RequiredField "password" name }
+update msg config =
+    case msg of
+        UpdateField key value ->
+            Dict.update key (Maybe.map (updateField value)) config
 
-    --     UpdatePassword pw ->
-    --         { model | password = RequiredField "user" pw }
+
+updateField : String -> Field -> Field
+updateField value field =
+    case field of
+        Any _ ->
+            Any value
+
+        RequiredField requiredFieldName _ ->
+            RequiredField requiredFieldName value
 
 
 
@@ -151,7 +142,7 @@ view config =
         )
 
 
-viewInputFields : Config -> List (Html msg)
+viewInputFields : Config -> List (Html Msg)
 viewInputFields config =
     Dict.foldl
         (\key field fields -> viewInputField key field :: fields)
@@ -159,8 +150,11 @@ viewInputFields config =
         config
 
 
-viewInputField : String -> Field -> Html msg
+viewInputField : String -> Field -> Html Msg
 viewInputField key field =
     input
-        [ placeholder key, value (fieldToString field) ]
-        [  ]
+        [ placeholder key
+        , value (fieldToString field)
+        , onInput (UpdateField key)
+        ]
+        []
