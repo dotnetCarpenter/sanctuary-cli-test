@@ -42,7 +42,7 @@ init = Dict.fromList
         ]
 
 
-validate_ : Config -> Result String Bool
+validate_ : Config -> Result (String, Field) Bool
 validate_ config =
     let validateField_ = validateField config
     in
@@ -50,9 +50,9 @@ validate_ config =
                         case output of
                             Result.Ok  _ ->
                                 if validateField_ field then
-                                    Result.Ok True
+                                    output
                                 else
-                                    Result.Err ("“" ++ key ++ "” requires that “" ++ requiredFieldToString field ++ "” has a value.")
+                                    Result.Err (key, field)
 
                             Result.Err _ -> output
                    )
@@ -117,11 +117,11 @@ updateField value field =
 
 
 
-resultToString : Result String Bool -> String
+resultToString : Result (String, Field) Bool -> String
 resultToString result =
     case result of
-        Result.Ok  a -> "The configuration is " ++ boolToString a ++ " valid."
-        Result.Err a -> a
+        Result.Ok  bool -> "The configuration is " ++ boolToString bool ++ " valid."
+        Result.Err tuple -> "“" ++ (Tuple.first tuple) ++ "” requires that “" ++ (Tuple.second tuple |> requiredFieldToString) ++ "” has a value."
 
 
 

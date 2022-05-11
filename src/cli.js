@@ -3,29 +3,17 @@
 import S                     from 'sanctuary'
 import { Option, parseArgs } from 'sanctuary-argv'
 import API                   from './index.js'
+import {
+	Any,
+	RequiredField,
+	validateRequiredField,
+}                            from './requiredField.js'
 
 // Option        :: Validator a -⁠> Handler a
 // Validator     :: String -> Either String (Setter a)
+// Setter        :: Configuration a => a -> a
 // Handler       :: Either (Setter a) (Validator a)
 // Configuration :: StrMap (Either String String)
-
-/**   Any :: (a -> b) -> String -> StrMap b -> Right (StrMap b) */
-const Any = of => key => (
-	S.pipe ([
-		of,
-		S.insert (key),
-		S.Right,
-	])
-)
-
-// const Any = of => key => value => (
-// 	S.Right (S.insert (key) (of (value)))
-// )
-
-// const Any = f => key => value => S.Right (options => ({
-// 	...options,
-// 	[key]: f (value)
-// }))
 
 /**   dbHost :: Handler Configuration */
 const dbHost = Option (Any (S.Right) ('dbHost'))
@@ -37,13 +25,12 @@ const dbPort = Option (Any (S.Right) ('dbPort'))
 const dbName = Option (Any (S.Right) ('dbName'))
 
 /**   dbUser :: Handler Configuration */
-const dbUser = Option (Any (S.Right) ('dbUser'))
+const dbUser = Option (Any (RequiredField ('dbPassword')) ('dbUser'))
 
 /**   dbPassword :: Handler Configuration */
-const dbPassword = Option (Any (S.Right) ('dbPassword'))
+const dbPassword = Option (Any (RequiredField ('dbUser')) ('dbPassword'))
 
-
-//    spec :: StrMap (Handler Configuration)
+/**   spec :: StrMap (Handler Configuration) */
 const spec = {
 	'-h':	dbHost,      	'--host':	dbHost,
 	'-p':	dbPort,       '--port':	dbPort,
@@ -52,10 +39,13 @@ const spec = {
 	'-w': dbPassword,   '--password': dbPassword,
 }
 
-/**   parse :: Array String -> Either String (Pair Options (Array String)) */
+/**   parse :: Array String -> ? */
 const parse = S.pipe ([
 	S.Pair (API.config),
-	parseArgs (spec)
+	parseArgs (spec),
+  // Either (Pair (StrMap (Either String String)) (Array String))
+  S.either (S.K (`Argument not recognized.\nUsage: ${JSON.stringify (spec)}`))
+           (S.pair (config => _ => validateRequiredField (config)))
 ])
 
 console.debug (
